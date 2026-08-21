@@ -11,9 +11,30 @@ public class Player : MonoBehaviour
 
     private bool isWalking;
     private Vector3 lastInteractDir;
+    private ClearCounter selectedCounter;
     private void Update() {
         HandleMovement();
         HandleInteractions();
+    }
+
+    private void Start() {
+        gameInput.OnInteractAction += GameInput_OnInteractAction;
+    }
+
+    private void GameInput_OnInteractAction(object sender, System.EventArgs e) {
+        Vector2 inputVector = gameInput.GetMovementVectorNormalized();
+
+        Vector3 moveDir = new Vector3(inputVector.x, 0f, inputVector.y);
+        if (moveDir != Vector3.zero) {
+            lastInteractDir = moveDir;
+        }
+        float interactDistance = 2f;
+        if (Physics.Raycast(transform.position, lastInteractDir, out RaycastHit raycastHit, interactDistance, countersLayerMask)) {
+            if (raycastHit.transform.TryGetComponent(out ClearCounter clearCounter)) {
+                //tiene ClearCounter
+                clearCounter.Interact();
+            }
+        }
     }
 
     public bool IsWalking() { 
@@ -28,14 +49,21 @@ public class Player : MonoBehaviour
         }
         float interactDistance = 2f;
         if (Physics.Raycast(transform.position, lastInteractDir, out RaycastHit raycastHit, interactDistance, countersLayerMask)) {
-            if (raycastHit.transform.TryGetComponent(out ClearCounter clearCounter)) { 
+            if (raycastHit.transform.TryGetComponent(out ClearCounter clearCounter)) {
                 //tiene ClearCounter
-                clearCounter.Interact();
+                if (clearCounter != selectedCounter) {
+                    selectedCounter = clearCounter;
+                }
+            }
+            else { 
+                selectedCounter = null;
             }
         }
         else {
-            Debug.Log("-");
+            selectedCounter = null;
         }
+
+        Debug.Log(selectedCounter);
     }
 
     private void HandleMovement() {
