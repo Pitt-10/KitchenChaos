@@ -1,14 +1,44 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.XR.OpenVR;
 using UnityEngine;
 
 public class Player : MonoBehaviour
 {
     [SerializeField] private float moveSpeed = 7f;
     [SerializeField] private GameInput gameInput;
+    [SerializeField] private LayerMask countersLayerMask;
 
     private bool isWalking;
+    private Vector3 lastInteractDir;
     private void Update() {
+        HandleMovement();
+        HandleInteractions();
+    }
+
+    public bool IsWalking() { 
+        return isWalking;
+    }
+    private void HandleInteractions() {
+        Vector2 inputVector = gameInput.GetMovementVectorNormalized();
+
+        Vector3 moveDir = new Vector3(inputVector.x, 0f, inputVector.y);
+        if (moveDir != Vector3.zero) { 
+            lastInteractDir = moveDir;
+        }
+        float interactDistance = 2f;
+        if (Physics.Raycast(transform.position, lastInteractDir, out RaycastHit raycastHit, interactDistance, countersLayerMask)) {
+            if (raycastHit.transform.TryGetComponent(out ClearCounter clearCounter)) { 
+                //tiene ClearCounter
+                clearCounter.Interact();
+            }
+        }
+        else {
+            Debug.Log("-");
+        }
+    }
+
+    private void HandleMovement() {
         Vector2 inputVector = gameInput.GetMovementVectorNormalized();
 
         Vector3 moveDir = new Vector3(inputVector.x, 0f, inputVector.y);
@@ -45,17 +75,13 @@ public class Player : MonoBehaviour
                 //te podes mover solo en z
                 moveDir = moveDirZ;
             }
-            else { 
+            else {
                 //no te podes mover en ninguna direccion
             }
         }
-            isWalking = moveDir != Vector3.zero;
+        isWalking = moveDir != Vector3.zero;
 
         float rotateSpeed = 10f;
         transform.forward = Vector3.Slerp(transform.forward, moveDir, Time.deltaTime * rotateSpeed);
-    }
-
-    public bool IsWalking() { 
-        return isWalking;
     }
 }
